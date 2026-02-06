@@ -1,0 +1,125 @@
+# Architecture SaaS - Système de Prise de Commande pour Boîtes de Nuit
+
+> 📖 Documentation complète disponible dans `.cursor/rules/RULE.md`
+> 📌 User stories disponibles dans `.cursor/rules/USER_STORIES.md`
+
+## Contexte
+PWA Next.js 16+ pour digitaliser la prise de commande en boîte de nuit. Architecture multi-tenant (SaaS) avec Clean Architecture/Hexagonale.
+
+## Stack
+- Next.js 16+ (App Router), TypeScript strict
+- PostgreSQL + Redis
+- Stripe / Mobile Money
+- Socket.io/Pusher (temps réel)
+- Docker + Docker Compose (VPS Ubuntu)
+
+## Architecture (Clean Code)
+
+```
+/src
+  /app                 # Presentation Layer (Next.js routes)
+    /[tenantId]        # Multi-tenant routing
+    /api               # API endpoints
+  /core                # Domain Layer (logique métier pure)
+    /entities          # Order, Product, Tenant, Table
+    /use-cases         # CreateOrder, UpdateStock, etc.
+    /repositories      # Interfaces (IOrderRepository)
+  /infrastructure      # Infrastructure Layer
+    /database          # Prisma/TypeORM
+    /payment           # Stripe/Mobile Money adapters
+    /realtime          # WebSocket handlers
+  /shared              # Utils, types
+```
+
+## Règles Critiques
+
+### 1. Multi-tenancy (OBLIGATOIRE)
+- **TOUJOURS** filtrer par `tenantId` dans les requêtes DB
+- **JAMAIS** exposer des données d'un tenant à un autre
+- Middleware de validation `tenantId` sur toutes les routes API
+
+### 2. Transactions & Concurrence
+- Transactions DB pour opérations critiques (création commande, stock)
+- Système de "hold" pour éviter doubles commandes
+- Vérifier stock **avant** ET **pendant** création commande
+
+### 3. Workflow Commande
+1. Scan QR → Identifie tenant + table
+2. Affichage menu → Filtre par `tenant_id` + `stock > 0`
+3. Création commande → Transaction avec vérification stock
+4. Paiement → Webhook Stripe/Mobile Money
+5. Notification temps réel → WebSocket au barman (`tenant-bar` channel)
+6. Service → Statuts: PENDING_PAYMENT → PAID → PREPARING → READY → DELIVERED
+
+### 4. Modèle de Données
+- **Tenant** (club) : id, name, slug, logoUrl, settings
+- **User** : id, role (ADMIN/BARTENDER/WAITER), email, tenantId
+- **Product** : id, name, price, stockQuantity, isAvailable, tenantId
+- **Table** : id, label, qrCodeUrl, tenantId
+- **Order** : id, status, totalAmount, createdAt, tableId, tenantId
+- **OrderItem** : id, quantity, unitPrice, orderId, productId
+
+**⚠️ RÈGLE CRITIQUE** : Tenant est partout. Toute requête doit filtrer par `tenantId`.
+
+### 5. Conventions Code
+- Entités : PascalCase (`Order`, `Product`)
+- Use Cases : PascalCase verbe (`CreateOrder`)
+- Repositories : Interface `I` (`IOrderRepository`)
+- Routes API : kebab-case (`/api/orders/create-order`)
+
+### 6. Sécurité
+- Validation entrées (Zod recommandé)
+- JWT pour auth
+- Rôles/permissions (ADMIN, BARTENDER, WAITER)
+- Chiffrement données sensibles
+
+### 7. Performance
+- Redis cache pour menus
+- Pagination listes
+- Index DB sur `tenant_id`, `table_id`, `status`
+- Next.js ISR pour pages publiques
+
+## Exemple Use Case
+
+```typescript
+// /core/use-cases/CreateOrder.ts
+export class CreateOrder {
+  constructor(
+    private orderRepository: IOrderRepository,
+    private productRepository: IProductRepository
+  ) {}
+
+  async execute(tenantId: string, tableId: string, items: OrderItem[]): Promise<Order> {
+    // 1. Valider stock (avec tenantId)
+    // 2. Réserver stock (transaction)
+    // 3. Créer Order (statut PENDING_PAYMENT)
+    // 4. Retourner Order
+  }
+}
+```
+
+## Exemple API Route
+
+```typescript
+// /app/api/[tenantId]/orders/route.ts
+export async function POST(
+  request: Request,
+  { params }: { params: { tenantId: string } }
+) {
+  // 1. Valider tenantId (middleware)
+  // 2. Parser body (Zod)
+  // 3. Appeler use case CreateOrder
+  // 4. Retourner réponse
+}
+```
+
+## Évolutivité
+- Phase 1 (MVP) : Un tenant, Stripe, WebSockets basiques
+- Phase 2 (SaaS) : Multi-tenant, dashboard admin, analytics
+- Phase 3 (Scale) : Kubernetes, RDS, CDN, monitoring
+
+## Outils Recommandés
+- **ORM** : Prisma
+- **Validation** : Zod
+- **UI** : Tailwind CSS + shadcn/ui (déjà configuré)
+- **Tests** : Vitest (unit), Playwright (E2E)

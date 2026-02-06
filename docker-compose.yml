@@ -1,0 +1,55 @@
+services:
+  web:
+    image: bars-web:latest
+    container_name: bars-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: 18
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+ 
+  postgres:
+    image: postgres:15-alpine
+    container_name: bars-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bars_user
+      POSTGRES_PASSWORD: bars_password
+      POSTGRES_DB: bars_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bars_user -d bars_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: bars-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    driver: bridge

@@ -41,7 +41,8 @@ export async function POST(
     // Robust tenantId fallback from URL path when params are undefined in multipart requests
     const urlPath = request.nextUrl.pathname.split("/"); // ["", "api", "{tenantId}", "products"]
     const tenantFromPath = urlPath[2];
-    const { tenantId: tenantParam } = params || ({} as any);
+    const safeParams = params ?? { tenantId: "" };
+    const { tenantId: tenantParam } = safeParams;
     const tenantId = tenantParam || tenantFromPath;
     const contentType = request.headers.get("content-type") || "";
 
@@ -101,11 +102,10 @@ export async function POST(
       });
       return NextResponse.json(result);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating product:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to create product" },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to create product";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/infrastructure/database/PrismaClient';
+import type { Prisma } from '@prisma/client';
 
 const updateTenantSchema = z.object({
   name: z.string().min(2).max(100).optional(),
@@ -14,10 +15,10 @@ const updateTenantSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string }> }
+  { params }: { params: { tenantId: string } }
 ) {
   try {
-    const { tenantId } = await params;
+    const { tenantId } = params;
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -69,21 +70,22 @@ export async function GET(
         stats: tenant._count,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching tenant:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la récupération des informations' },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erreur lors de la récupération des informations';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string }> }
+  { params }: { params: { tenantId: string } }
 ) {
   try {
-    const { tenantId } = await params;
+    const { tenantId } = params;
     const body = await request.json();
 
     // Validate input
@@ -153,7 +155,7 @@ export async function PATCH(
       where: { id: tenantId },
       data: {
         ...coreUpdate,
-        settings: nextSettings,
+        settings: nextSettings as Prisma.InputJsonValue,
       },
       select: {
         id: true,
@@ -184,11 +186,10 @@ export async function PATCH(
         description: (updatedProfile.description as string | null) ?? null,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating tenant:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la mise à jour' },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : 'Erreur lors de la mise à jour';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

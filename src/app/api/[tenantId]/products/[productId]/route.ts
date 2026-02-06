@@ -43,7 +43,8 @@ export async function PATCH(
     const urlPath = request.nextUrl.pathname.split("/"); // ["", "api", "{tenantId}", "products", "{productId}"]
     const tenantFromPath = urlPath[2];
     const productIdFromPath = urlPath[4];
-    const { tenantId: tenantParam, productId: productParam } = params || ({} as any);
+    const safeParams = params ?? { tenantId: "", productId: "" };
+    const { tenantId: tenantParam, productId: productParam } = safeParams;
     const tenantId = tenantParam || tenantFromPath;
     const productId = productParam || productIdFromPath;
     const contentType = request.headers.get("content-type") || "";
@@ -55,7 +56,7 @@ export async function PATCH(
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
-      const data: any = {};
+      const data: Record<string, unknown> = {};
       if (formData.get("name")) data.name = String(formData.get("name"));
       if (formData.get("description")) data.description = String(formData.get("description"));
       if (formData.get("price")) data.price = Number(formData.get("price"));
@@ -86,16 +87,18 @@ export async function PATCH(
     }
 
     return NextResponse.json({ data: updatedProduct });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating product:", error);
-    if (error.message === "Product not found") {
+    const message =
+      error instanceof Error ? error.message : "Failed to update product";
+    if (message === "Product not found") {
       return NextResponse.json(
         { error: "Product not found" },
         { status: 404 }
       );
     }
     return NextResponse.json(
-      { error: "Failed to update product" },
+      { error: message },
       { status: 500 }
     );
   }
@@ -114,16 +117,18 @@ export async function DELETE(
     await deleteProduct.execute(productId, tenantId);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error deleting product:", error);
-    if (error.message === "Product not found") {
+    const message =
+      error instanceof Error ? error.message : "Failed to delete product";
+    if (message === "Product not found") {
       return NextResponse.json(
         { error: "Product not found" },
         { status: 404 }
       );
     }
     return NextResponse.json(
-      { error: "Failed to delete product" },
+      { error: message },
       { status: 500 }
     );
   }

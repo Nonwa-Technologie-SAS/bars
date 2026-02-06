@@ -3,12 +3,12 @@ import { prisma } from "@/infrastructure/database/PrismaClient";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string; tableId: string }> }
+  { params }: { params: { tenantId: string; tableId: string } }
 ) {
   try {
-    const { tenantId, tableId } = await params;
+    const { tenantId, tableId } = params;
     const body = await request.json();
-    const data: any = {};
+    const data: Record<string, unknown> = {};
     if (typeof body.label === "string") data.label = body.label;
     if (typeof body.qrCodeUrl === "string") data.qrCodeUrl = body.qrCodeUrl;
     if (typeof body.isActive === "boolean") data.isActive = body.isActive;
@@ -31,20 +31,21 @@ export async function PUT(
       data: updated,
       message: "Table mise à jour",
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: "Échec de mise à jour de la table" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Échec de mise à jour de la table";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string; tableId: string }> }
+  { params }: { params: { tenantId: string; tableId: string } }
 ) {
   try {
-    const { tenantId, tableId } = await params;
+    const { tenantId, tableId } = params;
     const existing = await prisma.table.findFirst({
       where: { id: tableId, tenantId },
     });
@@ -58,10 +59,11 @@ export async function DELETE(
       where: { id: tableId },
     });
     return NextResponse.json({ success: true, message: "Table supprimée" });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: "Échec de suppression de la table" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Échec de suppression de la table";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

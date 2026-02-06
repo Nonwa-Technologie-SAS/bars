@@ -15,7 +15,9 @@ export async function POST(
     }
     addSubscription(tenantId, userId, subscription);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Échec abonnement" }, { status: 500 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Échec abonnement";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { IProductRepository } from "@/core/repositories/IProductRepository";
 import { Product } from "@/core/entities/Product";
 import { prisma } from "@/infrastructure/database/PrismaClient";
+import type { Product as PrismaProduct, Prisma } from "@prisma/client";
 
 export class PrismaProductRepository implements IProductRepository {
   async create(product: Omit<Product, "id" | "createdAt" | "updatedAt">): Promise<Product> {
@@ -29,7 +30,7 @@ export class PrismaProductRepository implements IProductRepository {
   }
 
   async findAll(tenantId: string, filters?: { isAvailable?: boolean; stockQuantity?: number; query?: string; category?: string }): Promise<Product[]> {
-    const where: any = { tenantId };
+    const where: Prisma.ProductWhereInput = { tenantId };
 
     if (filters?.isAvailable !== undefined) {
       where.isAvailable = filters.isAvailable;
@@ -173,19 +174,19 @@ export class PrismaProductRepository implements IProductRepository {
       .map(this.mapToEntity);
   }
 
-  private mapToEntity(prismaProduct: any): Product {
+  private mapToEntity(prismaProduct: PrismaProduct): Product {
     return {
       id: prismaProduct.id,
       name: prismaProduct.name,
-      description: prismaProduct.description,
+      description: prismaProduct.description ?? undefined,
       price: prismaProduct.price,
       stockQuantity: prismaProduct.stockQuantity,
       isAvailable: prismaProduct.isAvailable,
       lowStockThreshold: prismaProduct.lowStockThreshold,
-      unitOfMeasure: prismaProduct.unitOfMeasure,
+      unitOfMeasure: prismaProduct.unitOfMeasure ?? undefined,
       tenantId: prismaProduct.tenantId,
-      imageUrl: prismaProduct.imageUrl,
-      category: prismaProduct.category,
+      imageUrl: prismaProduct.imageUrl ?? undefined,
+      category: prismaProduct.category ?? undefined,
       createdAt: prismaProduct.createdAt,
       updatedAt: prismaProduct.updatedAt,
     };

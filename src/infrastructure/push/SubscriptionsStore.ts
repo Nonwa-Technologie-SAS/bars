@@ -1,8 +1,12 @@
-type Subscription = any;
+type Subscription = unknown;
 
 const registry = new Map<string, Map<string, Subscription[]>>();
 
-export function addSubscription(tenantId: string, userId: string, subscription: Subscription) {
+export function addSubscription(
+  tenantId: string,
+  userId: string,
+  subscription: Subscription,
+) {
   if (!tenantId || !userId) return;
   const t = registry.get(tenantId) || new Map<string, Subscription[]>();
   const list = t.get(userId) || [];
@@ -14,7 +18,10 @@ export function addSubscription(tenantId: string, userId: string, subscription: 
   registry.set(tenantId, t);
 }
 
-export function getSubscriptions(tenantId: string, userId?: string): Subscription[] {
+export function getSubscriptions(
+  tenantId: string,
+  userId?: string,
+): Subscription[] {
   const t = registry.get(tenantId);
   if (!t) return [];
   if (userId) return t.get(userId) || [];

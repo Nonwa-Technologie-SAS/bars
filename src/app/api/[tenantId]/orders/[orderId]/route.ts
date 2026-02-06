@@ -65,10 +65,9 @@ export async function GET(
         label: order.table?.label || order.tableId,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch order detail" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch order detail";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

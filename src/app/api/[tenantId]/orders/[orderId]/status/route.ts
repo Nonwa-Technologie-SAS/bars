@@ -45,11 +45,12 @@ export async function PATCH(
     }
 
     return NextResponse.json({ order });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating order status:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to update order status" },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to update order status";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

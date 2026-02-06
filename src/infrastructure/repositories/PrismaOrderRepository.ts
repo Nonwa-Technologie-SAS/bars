@@ -1,6 +1,7 @@
 import { IOrderRepository } from "@/core/repositories/IOrderRepository";
 import { Order, OrderStatus } from "@/core/entities/Order";
 import { prisma } from "@/infrastructure/database/PrismaClient";
+import type { Order as PrismaOrder } from "@prisma/client";
 
 export class PrismaOrderRepository implements IOrderRepository {
   async create(order: Omit<Order, "id" | "createdAt" | "updatedAt">): Promise<Order> {
@@ -53,7 +54,7 @@ export class PrismaOrderRepository implements IOrderRepository {
     return rows.map(this.mapToEntity);
   }
 
-  private mapToEntity(prismaOrder: any): Order {
+  private mapToEntity(prismaOrder: PrismaOrder): Order {
     return {
       id: prismaOrder.id,
       status: prismaOrder.status as OrderStatus,

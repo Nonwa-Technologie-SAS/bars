@@ -1,10 +1,14 @@
-import { IStockMovementRepository } from "@/core/repositories/IStockMovementRepository";
-import { StockMovement } from "@/core/entities/StockMovement";
-import { prisma } from "@/infrastructure/database/PrismaClient";
+import {
+  StockMovement,
+  StockMovementType,
+} from '@/core/entities/StockMovement';
+import { IStockMovementRepository } from '@/core/repositories/IStockMovementRepository';
+import { prisma } from '@/infrastructure/database/PrismaClient';
+import type { StockMovement as PrismaStockMovement } from '@prisma/client';
 
 export class PrismaStockMovementRepository implements IStockMovementRepository {
   async create(
-    data: Omit<StockMovement, "id" | "createdAt">
+    data: Omit<StockMovement, 'id' | 'createdAt'>,
   ): Promise<StockMovement> {
     const created = await prisma.stockMovement.create({
       data: {
@@ -25,30 +29,29 @@ export class PrismaStockMovementRepository implements IStockMovementRepository {
   async findByProduct(
     tenantId: string,
     productId: string,
-    limit = 50
+    limit = 50,
   ): Promise<StockMovement[]> {
     const movements = await prisma.stockMovement.findMany({
       where: { tenantId, productId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       take: limit,
     });
 
     return movements.map(this.mapToEntity);
   }
 
-  private mapToEntity(prismaMovement: any): StockMovement {
+  private mapToEntity(prismaMovement: PrismaStockMovement): StockMovement {
     return {
       id: prismaMovement.id,
-      type: prismaMovement.type,
+      type: prismaMovement.type as StockMovementType,
       delta: prismaMovement.delta,
       previousStock: prismaMovement.previousStock,
       newStock: prismaMovement.newStock,
-      note: prismaMovement.note,
+      note: prismaMovement.note ?? undefined,
       tenantId: prismaMovement.tenantId,
       productId: prismaMovement.productId,
-      createdById: prismaMovement.createdById,
+      createdById: prismaMovement.createdById ?? undefined,
       createdAt: prismaMovement.createdAt,
     };
   }
 }
-

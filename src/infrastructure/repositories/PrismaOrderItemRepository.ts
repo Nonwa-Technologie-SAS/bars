@@ -1,6 +1,7 @@
 import { IOrderItemRepository } from "@/core/repositories/IOrderItemRepository";
 import { OrderItem } from "@/core/entities/OrderItem";
 import { prisma } from "@/infrastructure/database/PrismaClient";
+import type { OrderItem as PrismaOrderItem } from "@prisma/client";
 
 export class PrismaOrderItemRepository implements IOrderItemRepository {
   async createMany(items: Omit<OrderItem, "id" | "createdAt">[]): Promise<OrderItem[]> {
@@ -27,7 +28,7 @@ export class PrismaOrderItemRepository implements IOrderItemRepository {
     return rows.map(this.mapToEntity);
   }
 
-  private mapToEntity(prismaOrderItem: any): OrderItem {
+  private mapToEntity(prismaOrderItem: PrismaOrderItem): OrderItem {
     return {
       id: prismaOrderItem.id,
       orderId: prismaOrderItem.orderId,

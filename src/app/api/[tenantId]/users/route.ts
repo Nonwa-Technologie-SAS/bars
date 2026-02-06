@@ -11,10 +11,10 @@ const getUsers = new GetUsers(userRepository);
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string }> }
+  { params }: { params: { tenantId: string } }
 ) {
   try {
-    const { tenantId } = await params;
+    const { tenantId } = params;
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query") || undefined;
     const role = searchParams.get("role") || undefined;
@@ -36,21 +36,20 @@ export async function GET(
     }
 
     return NextResponse.json(users);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching users:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch users";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string }> }
+  { params }: { params: { tenantId: string } }
 ) {
   try {
-    const { tenantId } = await params;
+    const { tenantId } = params;
     const body = await request.json();
     
     // Basic validation
@@ -83,11 +82,10 @@ export async function POST(
       data: user,
       message: "User created successfully",
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating user:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to create user" },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error ? error.message : "Failed to create user";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

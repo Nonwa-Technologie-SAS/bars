@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/infrastructure/database/PrismaClient";
+import type { Prisma } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string }> }
+  { params }: { params: { tenantId: string } }
 ) {
   try {
-    const { tenantId } = await params;
+    const { tenantId } = params;
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query") || undefined;
     const active = searchParams.get("active");
-    const where: any = { tenantId };
+    const where: Prisma.TableWhereInput = { tenantId };
     if (active === "true") where.isActive = true;
     if (active === "false") where.isActive = false;
     if (query) {
@@ -28,20 +29,19 @@ export async function GET(
       data: tables,
       message: "Tables retrieved successfully",
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: "Failed to fetch tables" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch tables";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string }> }
+  { params }: { params: { tenantId: string } }
 ) {
   try {
-    const { tenantId } = await params;
+    const { tenantId } = params;
     const body = await request.json();
     const label = (body?.label || "").toString().trim();
     const isActive = body?.isActive ?? true;
@@ -69,15 +69,19 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: created,
-      message: "Table créée",
-    }, { status: 201 });
-  } catch (error: any) {
     return NextResponse.json(
-      { error: "Échec de création de la table" },
-      { status: 500 }
+      {
+        success: true,
+        data: created,
+        message: "Table créée",
+      },
+      { status: 201 },
     );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Échec de création de la table";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

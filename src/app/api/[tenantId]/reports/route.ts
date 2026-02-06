@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/infrastructure/database/PrismaClient";
+import { prisma } from '@/infrastructure/database/PrismaClient';
+import { NextRequest, NextResponse } from 'next/server';
 
-type Period = "day" | "week" | "month" | "year" | "custom";
+type Period = 'day' | 'week' | 'month' | 'year' | 'custom';
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
@@ -18,15 +18,25 @@ function parseDate(value: string | null | undefined) {
 }
 
 function isPeriod(value: string): value is Period {
-  return value === "day" || value === "week" || value === "month" || value === "year" || value === "custom";
+  return (
+    value === 'day' ||
+    value === 'week' ||
+    value === 'month' ||
+    value === 'year' ||
+    value === 'custom'
+  );
 }
 
-function getDateRange(period: Period, from?: string | null, to?: string | null) {
+function getDateRange(
+  period: Period,
+  from?: string | null,
+  to?: string | null,
+) {
   const now = new Date();
-  if (period === "day") {
+  if (period === 'day') {
     return { from: startOfDay(now), to: endOfDay(now) };
   }
-  if (period === "week") {
+  if (period === 'week') {
     const weekday = now.getDay(); // 0=Sun ... 6=Sat
     const diffToMonday = (weekday + 6) % 7; // convert to Monday-based
     const monday = new Date(now);
@@ -35,17 +45,17 @@ function getDateRange(period: Period, from?: string | null, to?: string | null) 
     sunday.setDate(monday.getDate() + 6);
     return { from: startOfDay(monday), to: endOfDay(sunday) };
   }
-  if (period === "month") {
+  if (period === 'month') {
     const first = new Date(now.getFullYear(), now.getMonth(), 1);
     const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return { from: startOfDay(first), to: endOfDay(last) };
   }
-  if (period === "year") {
+  if (period === 'year') {
     const first = new Date(now.getFullYear(), 0, 1);
     const last = new Date(now.getFullYear(), 11, 31);
     return { from: startOfDay(first), to: endOfDay(last) };
   }
-  if (period === "custom") {
+  if (period === 'custom') {
     const f = parseDate(from) ?? now;
     const t = parseDate(to) ?? now;
     const fromDate = startOfDay(f);
@@ -60,7 +70,7 @@ function getDateRange(period: Period, from?: string | null, to?: string | null) 
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: { tenantId: string } },
 ) {
   try {
     const { tenantId } = await params;
@@ -76,33 +86,36 @@ export async function GET(
         createdAt: true,
         // We include data here to allow frontend to show summary in list/grid without extra fetch
         // If data is huge, we might optimize, but for now it's fine.
-        data: true 
-      }
+        data: true,
+      },
     });
     return NextResponse.json(reports);
   } catch (error) {
-    console.error("Error fetching reports:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error('Error fetching reports:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: { tenantId: string } },
 ) {
   try {
     const { tenantId } = await params;
     const body = await request.json();
     const { period: rawPeriod, from: fromParam, to: toParam, userId } = body;
-    
-    const period: Period = isPeriod(rawPeriod) ? rawPeriod : "day";
+
+    const period: Period = isPeriod(rawPeriod) ? rawPeriod : 'day';
     const { from, to } = getDateRange(period, fromParam, toParam);
 
     const orderItems = await prisma.orderItem.findMany({
       where: {
         order: {
           tenantId,
-          status: { in: ["PAID", "PREPARING", "READY", "DELIVERED"] },
+          status: { in: ['PAID', 'PREPARING', 'READY', 'DELIVERED'] },
           createdAt: {
             gte: from,
             lte: to,
@@ -140,13 +153,13 @@ export async function POST(
 
     for (const item of orderItems) {
       const existing = map.get(item.productId);
-      const qty = 1; // Assuming 1 per OrderItem row, or check if OrderItem has quantity field? 
-      // Checking Schema: OrderItem doesn't have quantity field! 
-      // It seems OrderItem is one row per item instance? 
+      const qty = 1; // Assuming 1 per OrderItem row, or check if OrderItem has quantity field?
+      // Checking Schema: OrderItem doesn't have quantity field!
+      // It seems OrderItem is one row per item instance?
       // Or I missed it. Let's check Schema again.
       // Schema: OrderItem { id, orderId, productId, unitPrice, createdAt }
       // It does NOT have quantity. So each row is 1 item.
-      
+
       const revenue = item.unitPrice;
 
       totalRevenue += revenue;
@@ -184,23 +197,25 @@ export async function POST(
 
     // Save to DB
     const title = `Rapport ${period} (${from.toLocaleDateString()} - ${to.toLocaleDateString()})`;
-    
+
     const savedReport = await prisma.report.create({
       data: {
         title,
         period,
         startDate: from,
         endDate: to,
-        data: reportData as any, // Json type
+        data: reportData, // Json type
         tenantId,
         creatorId: userId || undefined, // Optional
       },
     });
 
     return NextResponse.json(savedReport);
-
   } catch (error) {
-    console.error("Error generating report:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error('Error generating report:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 },
+    );
   }
 }

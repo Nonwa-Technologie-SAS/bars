@@ -1,6 +1,7 @@
 import { IUserRepository } from "@/core/repositories/IUserRepository";
 import { User, UserRole } from "@/core/entities/User";
 import { prisma } from "@/infrastructure/database/PrismaClient";
+import type { User as PrismaUser, Prisma } from "@prisma/client";
 
 export class PrismaUserRepository implements IUserRepository {
   async create(user: Omit<User, "id" | "createdAt" | "updatedAt">): Promise<User> {
@@ -31,7 +32,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async findAll(tenantId: string, filters?: { query?: string; role?: string }): Promise<User[]> {
-    const where: any = { tenantId };
+    const where: Prisma.UserWhereInput = { tenantId };
     if (filters?.role) {
       where.role = filters.role as UserRole;
     }
@@ -59,17 +60,17 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async delete(id: string, tenantId: string): Promise<void> {
-    await prisma.user.delete({
-      where: { id },
+    await prisma.user.deleteMany({
+      where: { id, tenantId },
     });
   }
 
-  private mapToEntity(prismaUser: any): User {
+  private mapToEntity(prismaUser: PrismaUser): User {
     return {
       id: prismaUser.id,
       email: prismaUser.email,
       password: prismaUser.password,
-      name: prismaUser.name,
+      name: prismaUser.name ?? undefined,
       role: prismaUser.role as UserRole,
       tenantId: prismaUser.tenantId,
       createdAt: prismaUser.createdAt,

@@ -8,10 +8,10 @@ import path from "path";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tenantId: string; productId: string } }
+  { params }: { params: Promise<{ tenantId: string; productId: string }> }
 ) {
   try {
-    const { tenantId, productId } = params;
+    const { tenantId, productId } = await params;
     
     const productRepository = new PrismaProductRepository();
     const getProduct = new GetProduct(productRepository);
@@ -36,15 +36,13 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { tenantId: string; productId: string } }
+  { params }: { params: Promise<{ tenantId: string; productId: string }> }
 ) {
   try {
-    // Robust fallbacks from URL path when params are undefined in multipart requests
-    const urlPath = request.nextUrl.pathname.split("/"); // ["", "api", "{tenantId}", "products", "{productId}"]
+    const urlPath = request.nextUrl.pathname.split("/");
     const tenantFromPath = urlPath[2];
     const productIdFromPath = urlPath[4];
-    const safeParams = params ?? { tenantId: "", productId: "" };
-    const { tenantId: tenantParam, productId: productParam } = safeParams;
+    const { tenantId: tenantParam, productId: productParam } = await params;
     const tenantId = tenantParam || tenantFromPath;
     const productId = productParam || productIdFromPath;
     const contentType = request.headers.get("content-type") || "";
@@ -106,10 +104,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { tenantId: string; productId: string } }
+  { params }: { params: Promise<{ tenantId: string; productId: string }> }
 ) {
   try {
-    const { tenantId, productId } = params;
+    const { tenantId, productId } = await params;
 
     const productRepository = new PrismaProductRepository();
     const deleteProduct = new DeleteProduct(productRepository);

@@ -3,10 +3,10 @@ import { getSubscriptions } from "@/infrastructure/push/SubscriptionsStore";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    const { tenantId } = params;
+    const { tenantId } = await params;
     const body = await request.json();
     const { userId, title, body: msg, data } = body || {};
 
@@ -37,7 +37,9 @@ export async function POST(
     );
     const sent = results.filter((r) => r.status === "fulfilled").length;
     return NextResponse.json({ success: true, sent });
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Échec envoi push" }, { status: 500 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Échec envoi push";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

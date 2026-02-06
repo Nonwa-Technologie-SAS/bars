@@ -3,10 +3,10 @@ import { prisma } from "@/infrastructure/database/PrismaClient";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { tenantId: string; tableId: string } }
+  { params }: { params: Promise<{ tenantId: string; tableId: string }> }
 ) {
   try {
-    const { tenantId, tableId } = params;
+    const { tenantId, tableId } = await params;
     const body = await request.json();
     const data: Record<string, unknown> = {};
     if (typeof body.label === "string") data.label = body.label;
@@ -42,10 +42,10 @@ export async function PUT(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { tenantId: string; tableId: string } }
+  { params }: { params: Promise<{ tenantId: string; tableId: string }> }
 ) {
   try {
-    const { tenantId, tableId } = params;
+    const { tenantId, tableId } = await params;
     const existing = await prisma.table.findFirst({
       where: { id: tableId, tenantId },
     });

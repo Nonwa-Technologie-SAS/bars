@@ -3,6 +3,7 @@ import { CreateUser } from "@/core/use-cases/users/CreateUser";
 import { GetUsers } from "@/core/use-cases/users/GetUsers";
 import { PrismaUserRepository } from "@/infrastructure/repositories/PrismaUserRepository";
 import { UserRole } from "@/core/entities/User";
+import { prisma } from "@/infrastructure/database/PrismaClient";
 
 // Initialize repository
 const userRepository = new PrismaUserRepository();
@@ -11,10 +12,10 @@ const getUsers = new GetUsers(userRepository);
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    const { tenantId } = params;
+    const { tenantId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query") || undefined;
     const role = searchParams.get("role") || undefined;
@@ -26,7 +27,18 @@ export async function GET(
       );
     }
 
-    const users = await getUsers.execute(tenantId, { query, role });
+    // Resolve tenant by id or slug
+    const tenant = await prisma.tenant.findFirst({
+      where: { OR: [{ id: tenantId }, { slug: tenantId }] },
+    });
+    if (!tenant) {
+      return NextResponse.json(
+        { error: "Tenant introuvable" },
+        { status: 404 }
+      );
+    }
+
+    const users = await getUsers.execute(tenant.id, { query, role });
 
     if (!users) {
       return NextResponse.json(
@@ -46,12 +58,26 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    const { tenantId } = params;
+    const { tenantId } = await params;
     const body = await request.json();
-    
+
+    // Verify tenant exists (by id or slug)
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        OR: [{ id: tenantId }, { slug: tenantId }],
+      },
+    });
+    if (!tenant) {
+      return NextResponse.json(
+        { error: "Tenant introuvable. Vérifiez que l'établissement existe." },
+        { status: 404 }
+      );
+    }
+    const resolvedTenantId = tenant.id;
+
     // Basic validation
     if (!body.email || !body.role) {
       return NextResponse.json(
@@ -70,7 +96,7 @@ export async function POST(
 
     // Create user
     const user = await createUser.execute({
-      tenantId,
+      tenantId: resolvedTenantId,
       email: body.email,
       password: body.password,
       name: body.name,

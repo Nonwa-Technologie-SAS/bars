@@ -7,10 +7,10 @@ import path from "path";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    const {tenantId} = await params;
+    const { tenantId } = await params;
     console.log(tenantId);
     const searchParams = request.nextUrl.searchParams;
     const availableOnly = searchParams.get("availableOnly") === "true";
@@ -35,14 +35,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    // Robust tenantId fallback from URL path when params are undefined in multipart requests
-    const urlPath = request.nextUrl.pathname.split("/"); // ["", "api", "{tenantId}", "products"]
+    const urlPath = request.nextUrl.pathname.split("/");
     const tenantFromPath = urlPath[2];
-    const safeParams = params ?? { tenantId: "" };
-    const { tenantId: tenantParam } = safeParams;
+    const { tenantId: tenantParam } = await params;
     const tenantId = tenantParam || tenantFromPath;
     const contentType = request.headers.get("content-type") || "";
 

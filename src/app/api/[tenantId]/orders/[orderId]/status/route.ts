@@ -6,7 +6,7 @@ import { getSubscriptions } from "@/infrastructure/push/SubscriptionsStore";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { tenantId: string; orderId: string } }
+  { params }: { params: Promise<{ tenantId: string; orderId: string }> }
 ) {
   try {
     const { tenantId, orderId } = await params;

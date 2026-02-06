@@ -3,7 +3,7 @@ import { prisma } from "@/infrastructure/database/PrismaClient";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tenantId: string; id: string } }
+  { params }: { params: Promise<{ tenantId: string; id: string }> }
 ) {
   try {
     const { tenantId, id } = await params;

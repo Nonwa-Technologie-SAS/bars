@@ -4,10 +4,10 @@ import type { Prisma } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    const { tenantId } = params;
+    const { tenantId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("query") || undefined;
     const active = searchParams.get("active");
@@ -38,10 +38,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string } }
+  { params }: { params: Promise<{ tenantId: string }> }
 ) {
   try {
-    const { tenantId } = params;
+    const { tenantId } = await params;
     const body = await request.json();
     const label = (body?.label || "").toString().trim();
     const isActive = body?.isActive ?? true;

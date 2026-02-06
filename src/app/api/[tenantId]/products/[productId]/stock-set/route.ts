@@ -11,7 +11,7 @@ const setStockSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tenantId: string; productId: string } }
+  { params }: { params: Promise<{ tenantId: string; productId: string }> }
 ) {
   try {
     const { tenantId, productId } = await params;

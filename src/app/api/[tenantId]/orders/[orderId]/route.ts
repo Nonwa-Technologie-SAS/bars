@@ -43,9 +43,9 @@ export async function GET(
       unitPrice: oi.unitPrice,
       createdAt: oi.createdAt,
       product: {
-        name: oi.product?.name || "",
-        imageUrl: oi.product?.imageUrl || undefined,
-        category: oi.product?.category || undefined,
+        name: oi.product?.name ?? "",
+        imageUrl: oi.product?.imageUrl ?? undefined,
+        category: oi.product?.category ?? undefined,
       },
     }));
 

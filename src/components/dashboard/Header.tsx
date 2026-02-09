@@ -17,6 +17,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Search, Bell, Clock, ChevronDown, Volume2, Languages } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { CommandPalette } from './CommandPalette';
+import { getSpeechLangFromLocale, speakNewOrder } from '@/shared/tts';
 
 export function Header() {
   const { user, logout } = useAuthStore();
@@ -38,6 +39,8 @@ export function Header() {
     if (locale === 'zh') return 'zh-CN';
     return 'fr-FR';
   }, [locale]);
+
+  const speechLang = useMemo(() => getSpeechLangFromLocale(locale), [locale]);
 
   useEffect(() => {
     // Mettre à jour la date
@@ -85,6 +88,7 @@ export function Header() {
           const increment = typeof (p as any).count === 'number' ? (p as any).count : 1;
           setNewOrdersCount((prev) => prev + increment);
           setShowNewOrdersIndicator(true);
+          speakNewOrder(speechLang);
           if (hideNewOrdersTimeoutRef.current) {
             window.clearTimeout(hideNewOrdersTimeoutRef.current);
           }
@@ -101,6 +105,7 @@ export function Header() {
           typeof data.count === 'number' && data.count > 0 ? data.count : 1;
         setNewOrdersCount((prev) => prev + increment);
         setShowNewOrdersIndicator(true);
+        speakNewOrder(speechLang);
         if (hideNewOrdersTimeoutRef.current) {
           window.clearTimeout(hideNewOrdersTimeoutRef.current);
         }
@@ -119,7 +124,7 @@ export function Header() {
         window.clearTimeout(hideNewOrdersTimeoutRef.current);
       }
     };
-  }, []);
+  }, [intlLocale, speechLang]);
 
   const displayName = user?.name || user?.email || t('header.userMenu.fallback');
   const displayEmail = user?.email || '';

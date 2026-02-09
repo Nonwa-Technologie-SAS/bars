@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { OrderStatus } from '@/core/entities/Order';
 import type { Order } from '@/shared/types';
+import { getSpeechLangFromLocale, speakOrderStatus } from '@/shared/tts';
 import { motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -113,6 +114,7 @@ function DashboardPage({ layout }: DashboardPageProps) {
     'TODAY' | 'WEEK' | 'MONTH' | 'ALL'
   >('ALL');
   const prevOrderIdsRef = useRef<Set<string>>(new Set());
+  const prevOrderStatusRef = useRef<Map<string, OrderStatus>>(new Map());
 
   const shortId = (id?: string) =>
     id ? (id.length > 8 ? `${id.slice(0, 8)}…` : id) : '';
@@ -149,6 +151,7 @@ function DashboardPage({ layout }: DashboardPageProps) {
       }
     } catch {}
   };
+
   const beep = () => {
     try {
       const AudioContextClass =
@@ -169,6 +172,8 @@ function DashboardPage({ layout }: DashboardPageProps) {
       o.stop(ctx.currentTime + 0.26);
     } catch {}
   };
+
+  const speechLang = getSpeechLangFromLocale(locale);
 
   useEffect(() => {
     if (
@@ -274,7 +279,19 @@ function DashboardPage({ layout }: DashboardPageProps) {
                 }
               });
             }
+            // Détection des changements de statut
+            const prevStatusMap = prevOrderStatusRef.current;
+            const statusChanges: Order[] = [];
+            sorted.forEach((o) => {
+              const prevStatus = prevStatusMap.get(o.id);
+              if (prevStatus && prevStatus !== o.status) {
+                statusChanges.push(o);
+              }
+            });
             prevOrderIdsRef.current = currentIds;
+            prevOrderStatusRef.current = new Map(
+              sorted.map((o) => [o.id, o.status])
+            );
             setOrders(sorted);
 
             const products = Array.isArray(productsRes)
@@ -291,6 +308,14 @@ function DashboardPage({ layout }: DashboardPageProps) {
             const map: Record<string, string> = {};
             (tlist as ApiTable[]).forEach((t) => (map[t.id] = t.label));
             setTables(map);
+
+            // Déclencher un TTS pour chaque changement de statut détecté
+            if (statusChanges.length > 0) {
+              statusChanges.slice(0, 5).forEach((ord) => {
+                const tableLabel = map[ord.tableId] || ord.tableId;
+                speakOrderStatus(ord.status, tableLabel, speechLang);
+              });
+            }
           }
         )
         .finally(() => setLoading(false));

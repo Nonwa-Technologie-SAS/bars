@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/table';
 import { OrderStatus } from '@/core/entities/Order';
 import type { Order } from '@/shared/types';
+import { getSpeechLangFromLocale, speakOrderStatus } from '@/shared/tts';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -337,6 +338,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ layout }) => {
       const json = (await res.json()) as { order?: Order; error?: string };
       const updated = json?.order;
       if (updated) {
+        const speechLang = getSpeechLangFromLocale(locale);
+        const current = orders.find((o) => o.id === orderId);
+        const tableLabel = current?.tableId || updated.tableId || shortId(orderId);
+        speakOrderStatus(next, tableLabel, speechLang);
+
         setOrders((prev) => {
           const nextList = prev
             .map((o) =>

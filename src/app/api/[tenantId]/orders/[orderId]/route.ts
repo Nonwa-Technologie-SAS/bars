@@ -36,7 +36,18 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const items = order.orderItems.map((oi) => ({
+    const items: Array<{
+      id: string;
+      productId: string;
+      quantity: number;
+      unitPrice: number;
+      createdAt: Date;
+      product: {
+        name: string;
+        imageUrl?: string;
+        category?: string;
+      };
+    }> = order.orderItems.map((oi) => ({
       id: oi.id,
       productId: oi.productId,
       quantity: oi.quantity,
